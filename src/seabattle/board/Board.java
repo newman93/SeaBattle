@@ -1,6 +1,7 @@
 package seabattle.board;
 
 import java.util.LinkedList;
+import java.util.Random;
 import javafx.geometry.Point2D;
 import javafx.scene.Parent;
 import javafx.scene.layout.HBox;
@@ -20,10 +21,14 @@ public class Board extends Parent {
     private int orientation = 0;
     private LinkedList<BattleCell> list = new LinkedList<BattleCell>();
     private Status status;
+    public int gameStage = 0; //0 - placing ships, 1 - shotting. 3 - end of the game
+    public Board opponentBoard;
+    private Random random = new Random();
     
-    public Board(boolean enemy, Status status) {
+    public Board(boolean enemy, Status status, Board opponentBoard) {
         this.enemy = enemy;
         this.status = status;
+        this.opponentBoard = opponentBoard;
         char alphabet = 'A';
         int number = 1;
         
@@ -61,6 +66,10 @@ public class Board extends Parent {
         getChildren().add(rows);
     }
     
+    public void setOpponent(Board opponentBoard) {
+        this.opponentBoard = opponentBoard;
+    }
+    
     public void updateStatus(int size) {
         this.status.setSize(String.valueOf(size));
     }
@@ -78,8 +87,10 @@ public class Board extends Parent {
     }
     
     public void placeShip(Ship ship, LinkedList<BattleCell> battleCells) {
-        for (BattleCell cell : battleCells) {
+        if (!getEnemy()) {
+            for (BattleCell cell : battleCells) {    
                 cell.setFill(Color.WHITE);
+            }
         }
         int i = 0;
         for (BattleCell boardCell : list) {
@@ -98,42 +109,60 @@ public class Board extends Parent {
         LinkedList<BattleCell> list = new LinkedList<BattleCell>();
         
         if (ship.getOrientation() == 0) {
-            for (double i = y; i < y + length; ++i ) {
-                if (!isValidPoint(x,i)) {
-                    return null;
-                }
-                
-                BattleCell battleCell = getBattleCell(x,i);
-                if (battleCell.getShip() != null) {
-                    return null;
-                }
-                
-                for (BattleCell neighbor : getNeighbors((int)x, (int)i)) {
-                    if (!isValidPoint(x, i))
-                        return null;
+            canPlaceShip: {
+                for (double i = y; i < y + length; ++i ) {
+                    if (!isValidPoint(x,i)) {
+                        list = null;
+                        break;
+                    }
 
-                    if (neighbor.getShip() != null)
-                        return null;
+                    BattleCell battleCell = getBattleCell(x,i);
+                    if (battleCell.getShip() != null) {
+                        list = null;
+                        break;
+                    }
+
+                    for (BattleCell neighbor : getNeighbors((int)x, (int)i)) {
+                        if (!isValidPoint(x, i)) {
+                            list = null;
+                            break canPlaceShip;
+                        }
+
+                        if (neighbor.getShip() != null) {
+                            list = null;
+                            break canPlaceShip;
+                        }
+                    }
+                    list.add(battleCell);
                 }
-                list.add(battleCell);
             }
         } else {
-            for (double i = x; i < x + length; i++) {
-                if (!isValidPoint(i, y))
-                    return null;
+            canPlaceShip: {
+                for (double i = x; i < x + length; i++) {
+                    if (!isValidPoint(i, y)) {
+                        list = null;
+                        break;
+                    }
 
-                BattleCell battleCell = getBattleCell(i, y);
-                if (battleCell.getShip() != null)
-                    return null;
+                    BattleCell battleCell = getBattleCell(i, y);
+                    if (battleCell.getShip() != null) {
+                        list = null;
+                        break;
+                    }
 
-                for (BattleCell neighbor : getNeighbors((int)i, (int)y)) {
-                    if (!isValidPoint(i, y))
-                        return null;
+                    for (BattleCell neighbor : getNeighbors((int)i, (int)y)) {
+                        if (!isValidPoint(i, y)) {
+                            list = null;
+                            break canPlaceShip;
+                        }
 
-                    if (neighbor.getShip() != null)
-                        return null;
+                        if (neighbor.getShip() != null) {
+                            list = null;
+                            break canPlaceShip;
+                        }
+                    }
+                    list.add(battleCell);
                 }
-                list.add(battleCell);
             }
         }
         
@@ -189,5 +218,88 @@ public class Board extends Parent {
     
     public void removeShipToPlace() {
         this.shipsToPlace -= 1;
+    }
+    
+    public int getShips() {
+        return this.ships;
+    }
+    
+    public boolean fireComputer() {
+        while (true) {
+            int x = random.nextInt(10 - 1 + 1) + 1;
+            int y = random.nextInt(10 - 1 + 1) + 1;
+
+            BattleCell cell = getBattleCell(x, y);
+            if (cell.fired == false) {
+                boolean fire = cell.fire();
+                break;
+            }
+        }
+        return true;
+    }    
+    
+    public void setComputerShips() {
+        if (!getEnemy()) {
+            LinkedList<BattleCell> ship4_1_list = new LinkedList<BattleCell>();
+            ship4_1_list.add(opponentBoard.getBattleCell(1.0,1.0));
+            ship4_1_list.add(opponentBoard.getBattleCell(2.0,1.0));
+            ship4_1_list.add(opponentBoard.getBattleCell(3.0,1.0));
+            ship4_1_list.add(opponentBoard.getBattleCell(4.0,1.0));
+            FourMastedShip ship4_1 = new FourMastedShip(1, ship4_1_list);
+            opponentBoard.placeShip(ship4_1, ship4_1.getCells());
+            
+            LinkedList<BattleCell> ship3_1_list = new LinkedList<BattleCell>();
+            ship3_1_list.add(opponentBoard.getBattleCell(1.0,3.0));
+            ship3_1_list.add(opponentBoard.getBattleCell(1.0,4.0));
+            ship3_1_list.add(opponentBoard.getBattleCell(1.0,5.0));
+            ThreeMastedShip ship3_1 = new ThreeMastedShip(0, ship3_1_list);
+            opponentBoard.placeShip(ship3_1, ship3_1.getCells());
+            
+            LinkedList<BattleCell> ship3_2_list = new LinkedList<BattleCell>();
+            ship3_2_list.add(opponentBoard.getBattleCell(8.0,10.0));
+            ship3_2_list.add(opponentBoard.getBattleCell(9.0,10.0));
+            ship3_2_list.add(opponentBoard.getBattleCell(10.0,10.0));
+            ThreeMastedShip ship3_2 = new ThreeMastedShip(1, ship3_2_list);
+            opponentBoard.placeShip(ship3_2, ship3_2.getCells());
+            
+            LinkedList<BattleCell> ship2_1_list = new LinkedList<BattleCell>();
+            ship2_1_list.add(opponentBoard.getBattleCell(4.0,4.0));
+            ship2_1_list.add(opponentBoard.getBattleCell(5.0,4.0));
+            TwoMastedShip ship2_1 = new TwoMastedShip(1, ship2_1_list);
+            opponentBoard.placeShip(ship2_1, ship2_1.getCells());
+            
+            LinkedList<BattleCell> ship2_2_list = new LinkedList<BattleCell>();
+            ship2_2_list.add(opponentBoard.getBattleCell(4.0,6.0));
+            ship2_2_list.add(opponentBoard.getBattleCell(4.0,7.0));
+            TwoMastedShip ship2_2 = new TwoMastedShip(0, ship2_2_list);
+            opponentBoard.placeShip(ship2_2, ship2_2.getCells());
+            
+            LinkedList<BattleCell> ship2_3_list = new LinkedList<BattleCell>();
+            ship2_3_list.add(opponentBoard.getBattleCell(8.0,7.0));
+            ship2_3_list.add(opponentBoard.getBattleCell(8.0,8.0));
+            TwoMastedShip ship2_3 = new TwoMastedShip(1, ship2_3_list);
+            opponentBoard.placeShip(ship2_3, ship2_3.getCells());
+            
+            LinkedList<BattleCell> ship1_1_list = new LinkedList<BattleCell>();
+            ship1_1_list.add(opponentBoard.getBattleCell(2.0,9.0));
+            OneMastedShip ship1_1 = new OneMastedShip(0, ship1_1_list);
+            opponentBoard.placeShip(ship1_1, ship1_1.getCells());
+            
+            LinkedList<BattleCell> ship1_2_list = new LinkedList<BattleCell>();
+            ship1_2_list.add(opponentBoard.getBattleCell(6.0,8.0));
+            OneMastedShip ship1_2 = new OneMastedShip(0, ship1_2_list);
+            opponentBoard.placeShip(ship1_2, ship1_2.getCells());
+            
+            LinkedList<BattleCell> ship1_3_list = new LinkedList<BattleCell>();
+            ship1_3_list.add(opponentBoard.getBattleCell(8.0,3.0));
+            OneMastedShip ship1_3 = new OneMastedShip(0, ship1_3_list);
+            opponentBoard.placeShip(ship1_3, ship1_3.getCells());
+
+            LinkedList<BattleCell> ship1_4_list = new LinkedList<BattleCell>();
+            ship1_4_list.add(opponentBoard.getBattleCell(10.0,4.0));
+            OneMastedShip ship1_4 = new OneMastedShip(0, ship1_4_list);
+            opponentBoard.placeShip(ship1_4, ship1_4.getCells());
+            shipsToPlace = 0;
+        }
     }
 }

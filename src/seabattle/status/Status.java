@@ -13,7 +13,7 @@ public class Status extends Parent {
     private StringProperty orientation = new SimpleStringProperty("Vertical");
     
     public Status() {
-        rows.setPrefWidth(150);
+        rows.setPrefWidth(200);
         rows.getChildren().add(new Label("Status:"));
         
         HBox row2 = new HBox();

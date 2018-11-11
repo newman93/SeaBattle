@@ -28,10 +28,10 @@ public class SeaBattleMain extends Application {
         BorderPane root = new BorderPane();
         root.setPrefSize(1200, 600);
         
-        MenuBar menuBar = new MenuBar();
-        Menu newGameMenu = new Menu("Menu");
-        MenuItem newGameMenuItem = new MenuItem("New game");
-        newGameMenuItem.setOnAction(actionEvent -> {
+       MenuBar menuBar = new MenuBar();
+       Menu newGameMenu = new Menu("Menu");
+       MenuItem newGameMenuItem = new MenuItem("New game");
+       newGameMenuItem.setOnAction(actionEvent -> {
            primaryStage.close();
            Platform.runLater( () -> {
                try {
@@ -48,9 +48,10 @@ public class SeaBattleMain extends Application {
         
         status = new Status();
         
-        enemyBoard = new Board(true, status);
-        playerBoard = new Board(false, status);
-        
+        enemyBoard = new Board(true, status, null);
+        playerBoard = new Board(false, status, null);
+        enemyBoard.setOpponent(playerBoard);
+        playerBoard.setOpponent(enemyBoard);
         
         HBox hbox = new HBox(50, playerBoard, status, enemyBoard);
         hbox.setAlignment(Pos.CENTER);
@@ -71,8 +72,7 @@ public class SeaBattleMain extends Application {
                     status.setOrientation(1);
                 } else {
                    playerBoard.setOrientation(0); 
-                   status.setOrientation(0);
-                }
+                   status.setOrientation(0);                }
             }
         }    
     };
